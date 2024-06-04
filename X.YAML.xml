@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2018.1.5 (Build 659_0_20788U)" ts="2024-06-04 09:19:19">
-<Class name="X.YAML">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2018.1.5 (Build 659_0_20788U)" ts="2024-06-04 16:54:48">
+<Class name="Heijmen.YAML">
 <Description>
-A YAML-to-JSON converter written in InterSystems ObjectScript</Description>
+YAML
+References:
+	- https://www.cloudbees.com/blog/yaml-tutorial-everything-you-need-get-started</Description>
 <Super>%RegisteredObject</Super>
-<TimeChanged>66995,33447.131327</TimeChanged>
-<TimeCreated>66995,33447.131327</TimeCreated>
+<TimeChanged>66995,60525.349553</TimeChanged>
+<TimeCreated>66984,41535.984717</TimeCreated>
 
 <Method name="ToJSON">
 <ClassMethod>1</ClassMethod>
@@ -113,6 +115,14 @@ Assume indentation is uniform across the document!</Description>
 	elseif (c="~") || (c="null") {
 		set type = "null"
 		set valueToStore = ""
+	}
+	elseif c="[" { // inline array
+		set type = "inline"
+		set valueToStore = [].%FromJSON(originalValue)
+	}
+	elseif c="{" { // inline object
+		set type = "inline"
+		set valueToStore = {}.%FromJSON(originalValue)
 	}
 	elseif originalValue="" {
 		// can be array or object
@@ -238,6 +248,9 @@ Parse the current array and return it</Description>
 		else {
 			do json.%Set(group.key, group.value, type)
 		}
+	}
+	elseif type="inline" {
+		do json.Set(group.key, group.value)
 	}
 	elseif (type="arr") || (type="obj") {
 		set store = {}

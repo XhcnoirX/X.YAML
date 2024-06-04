@@ -89,6 +89,14 @@ ClassMethod ParseLine(line As %String, ByRef type As %String, ByRef key As %Stri
 		set type = "null"
 		set valueToStore = ""
 	}
+	elseif c="[" { // inline array
+		set type = "inline"
+		set valueToStore = [].%FromJSON(originalValue)
+	}
+	elseif c="{" { // inline object
+		set type = "inline"
+		set valueToStore = {}.%FromJSON(originalValue)
+	}
 	elseif originalValue="" {
 		// can be array or object
 		set type = "arrobj"
@@ -194,6 +202,9 @@ ClassMethod AddGroupToJSON(ByRef json As %DynamicAbstractObject, ByRef group As 
 		else {
 			do json.%Set(group.key, group.value, type)
 		}
+	}
+	elseif type="inline" {
+		do json.%Set(group.key, group.value)
 	}
 	elseif (type="arr") || (type="obj") {
 		set store = {}
