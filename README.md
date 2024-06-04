@@ -9,6 +9,7 @@ To install, import X.YAML.xml in the namespace of your choice and compile it. Or
 ## Usage
 
 To use:
+```
 // read in YAML file from disk, here my.yaml
 set obj = ##class(X.YAML).ToJSON( "C:\Temp\my.yaml" )
 // 'obj' now contains JSON representation of my.yaml
@@ -16,6 +17,7 @@ set obj = ##class(X.YAML).ToJSON( "C:\Temp\my.yaml" )
 w json.%ToJSON()
 // or use directly, for instance if the root object of my.yaml contains a 'foo' property with 'bar' as its string value
 w obj.foo // displays: bar
+```
 
 ## Limitations
 
@@ -23,5 +25,6 @@ There are a number of limitations:
 - The YAML file needs to be indented correctly
 - Array elements need to be at 1 indentation level deeper than the array itself
 - Number parsing (floats, octals, ...) needs work
+- ...
 
 These limitations will be addressed in future versions.
