@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2018.1.5 (Build 659_0_20788U)" ts="2024-06-04 09:19:19">
+<Class name="X.YAML">
+<Description>
+A YAML-to-JSON converter written in InterSystems ObjectScript</Description>
+<Super>%RegisteredObject</Super>
+<TimeChanged>66995,33447.131327</TimeChanged>
+<TimeCreated>66995,33447.131327</TimeCreated>
+
+<Method name="ToJSON">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>file:%String=""</FormalSpec>
+<ReturnType>%DynamicAbstractObject</ReturnType>
+<Implementation><![CDATA[
+	set lines = []
+	if $zconvert($e(file,1,4),"l")="http" {
+		// load from URL
+		// ...
+	} else {
+		// load from file
+		if '##class(%File).Exists(file) {
+			set $zerror = "File not found!"
+			throw
+		}
+		set stream = ##class(%Stream.FileCharacter).%New()
+		set status = stream.LinkToFile(file)
+		While 'stream.AtEnd {
+			do lines.%Push(stream.ReadLine())
+		}
+	}
+	if +lines.%Size()=0 {
+		set $zerror = "File empty!"
+		throw
+	}
+	// first line needs to be '---'
+	if ..StripComment(lines.%Remove(0))'="---" {
+		set $zerror = "File does not start with ---!"
+		throw
+	}
+	set json = {} // assume object for now
+	do ..GetNextGroup(.json, .lines)
+	quit json
+]]></Implementation>
+</Method>
+
+<Method name="StripComment">
+<Description>
+Separated method in case of specific usecases</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>line:%String=""</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	// strip unless # is inside " ... " text
+	quit $p(line,"#")
+]]></Implementation>
+</Method>
+
+<Method name="GetIndentLevel">
+<Description>
+Assume indentation is uniform across the document!</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>line:%String=""</FormalSpec>
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[
+	set lvl = 0
+	while ($e(line,1,^||IndentCharacterLength)=^||IndentCharacter) {
+		set lvl = lvl+1
+		set line = $e(line,^||IndentCharacterLength+1,*)
+	}
+	quit lvl
+]]></Implementation>
+</Method>
+
+<Method name="TrimLeft">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>line:%String=""</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	set c = $ascii($e(line,1))
+	while ((c=9) || (c=10) || (c=32)) {
+		set line = $e(line,2,*)
+		set c = $ascii($e(line,1))
+	}
+	quit line
+]]></Implementation>
+</Method>
+
+<Method name="ParseLine">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[line:%String,&type:%String,&key:%String,&valueToStore:%RegisteredObject]]></FormalSpec>
+<Implementation><![CDATA[
+	set key = $p(line,":")
+	set originalValue = ..TrimLeft($P(line,":",2,999))
+	set c = $e(originalValue,1)
+	set a = $ascii(c)
+	set origValLC = $zconvert(originalValue, "l")
+	if a=34 {
+		set type = "string"
+		set valueToStore = $e(originalValue,2,*-1)
+	}
+	elseif (origValLC="true") || (origValLC="on") || (origValLC="yes") {
+		set type = "boolean"
+		set valueToStore = 1
+	}
+	elseif (origValLC="false") || (origValLC="off") || (origValLC="no") {
+		set type = "boolean"
+		set valueToStore = 0
+	}
+	elseif (a>=48) && (a<=57) {
+		set type = "number"
+		set valueToStore = +originalValue
+	}
+	elseif (c="~") || (c="null") {
+		set type = "null"
+		set valueToStore = ""
+	}
+	elseif originalValue="" {
+		// can be array or object
+		set type = "arrobj"
+	}
+	elseif c=">" {
+		set type = "block"
+	}
+	elseif c="|" {
+		set type = "multiline"
+	}
+	elseif c="&" {
+		set type = "setreference"
+		set valueToStore = $e(originalValue,2,*)
+	}
+	elseif c="*" {
+		set type = "getreference"
+		set valueToStore = $e(originalValue,2,*)
+	}
+	else {
+		set type = "string"
+		set valueToStore = originalValue
+	}
+]]></Implementation>
+</Method>
+
+<Method name="GetTab">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>line:%String=""</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	// tabs or spaces
+	set c = $e(line,1)
+	set a = $ascii(c)
+	if (a'=32) && (a'=9) {
+		quit ""
+		set $zerror = "Indentation issue!"
+		throw
+	}
+	set p = 2
+	set tab = c
+	while ($e(line,p)=c) {
+		set tab = tab _ c
+		set p = p + 1
+	}
+	quit tab
+]]></Implementation>
+</Method>
+
+<Method name="ParseObject">
+<Description>
+Parse the current object and return it</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>lines:%DynamicArray</FormalSpec>
+<ReturnType>%DynamicObject</ReturnType>
+<Implementation><![CDATA[
+	set obj = {}
+	
+	quit obj
+]]></Implementation>
+</Method>
+
+<Method name="ParseArray">
+<Description>
+Parse the current array and return it</Description>
+<ClassMethod>1</ClassMethod>
+<ReturnType>%DynamicArray</ReturnType>
+<Implementation><![CDATA[
+	set arr = []
+	quit arr
+]]></Implementation>
+</Method>
+
+<Method name="GetNextGroup">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&json:%DynamicAbstractObject,&lines:%DynamicArray]]></FormalSpec>
+<Implementation><![CDATA[
+	if 'lines.%Size() quit ""
+	set group = {}
+	set line = lines.%Remove(0)
+	// determine type of this line
+	do ..ParseLine(line, .type, .key, .value)
+	set group.key = key
+	if (type="arrobj") || (type="block") || (type="multiline") {
+		set offset1 = $l(..GetTab(line)) // not foolproof
+		set offset2 = 0
+		set group.lines = []
+		set line = lines.%Get(0)
+		while $l(..GetTab(line))>offset1 {
+			if 'offset2 set offset2 = $l(..GetTab(line))
+			set line = $e(line,offset2+1,*)
+			if type="arrobj" {
+				if $e(line,1)="-" {
+					set type = "arr"
+				} else {
+					set type = "obj"
+				}
+			}
+			do group.lines.%Push(line)
+			do lines.%Remove(0)
+			set line = lines.%Get(0)
+		}
+	} else {
+		set group.value = value
+	}
+	set group.type = type
+	//w !,"Group "_group.%ToJSON()
+	do ..AddGroupToJSON(.json, .group)
+	//
+	quit ..GetNextGroup(.json, .lines)
+]]></Implementation>
+</Method>
+
+<Method name="AddGroupToJSON">
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&json:%DynamicAbstractObject,&group:%DynamicObject]]></FormalSpec>
+<Implementation><![CDATA[
+	set type = group.type
+	if (type="string") || (type="number") || (type="boolean") || (type="null") {
+		if group.key="" {
+			do json.%Push(group.value, type)
+		}
+		else {
+			do json.%Set(group.key, group.value, type)
+		}
+	}
+	elseif (type="arr") || (type="obj") {
+		set store = {}
+		if type="arr" set store = []
+		set iter = group.lines.%GetIterator()
+		while iter.%GetNext(.key, .value) {
+			w !,key_": "_value
+			if type="arr" set value = ..TrimLeft($e(value,2,*))
+			// TODO: item is complex object/array/...
+			if value[":" {
+				do ..ParseLine(value, .itemType, .itemKey, .itemValue)
+				w !,itemType_" "_itemKey
+				set temp = {}
+				set temp.type = itemType
+				set temp.key = ""
+				set temp.value = itemValue
+				do store.%Set(itemKey, itemValue, itemType)
+			} else {
+				if type="arr" do store.%Push(value)
+				// obj??
+			}
+		}
+		do json.%Set(group.key, .store)
+	}
+	else {
+		w !,group.%ToJSON()
+	}
+	quit
+]]></Implementation>
+</Method>
+</Class>
+</Export>
