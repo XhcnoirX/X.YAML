@@ -1,6 +1,6 @@
 # YAML-to-JSON
 
-This is a basic YAML-to-JSON converter written in [InterSystems ObjectScript](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=PAGE_OBJECTSCRIPT). This should run without issue on any InterSystems Caché or InterSystems IRIS system.
+This is a basic YAML-to-JSON converter written in [InterSystems ObjectScript](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=PAGE_OBJECTSCRIPT). This should run without issue on InterSystems IRIS, or InterSystems Caché 2016.1 and higher.
 
 ## Installation
 
@@ -14,9 +14,9 @@ To use:
 set obj = ##class(X.YAML).ToJSON( "C:\Temp\my.yaml" )
 // 'obj' now contains JSON representation of my.yaml
 // display as string
-w json.%ToJSON()
+write obj.%ToJSON()
 // or use directly, for instance if the root object of my.yaml contains a 'foo' property with 'bar' as its string value
-w obj.foo // displays: bar
+write obj.foo // displays: bar
 ```
 
 ## Limitations
